@@ -154,6 +154,21 @@ module lyra_topl  (
     assign audio_data_valid_3 = audio_data_valid_2;
 
     ///////////////////////////////////////////////////////
+    //// I2S Encoder Instance
+    ///////////////////////////////////////////////////////
+
+    i2s_encoder i2s_encoder_inst (
+        .clk(clk),
+        .rst_n(rst_n),
+        .i2s_bclk(i2so_ck),
+        .i2s_ws(i2so_ws),
+        .i2s_sdata(i2so_ad),
+        .left_data(audio_data_out_0),
+        .right_data(audio_data_out_1),
+        .valid(audio_data_out_valid_0 & audio_data_out_valid_1)
+    );
+
+    ///////////////////////////////////////////////////////
     //// ADAT Encoder Instance
     ///////////////////////////////////////////////////////
 
