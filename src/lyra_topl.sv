@@ -63,6 +63,7 @@ module lyra_topl  (
     logic vu_meter_clip_1;
     logic vu_meter_clip_2;
     logic vu_meter_clip_3;
+    assign vu_meter_mon = 1'b0;
 
     logic [15:0] audio_data_0;
     logic [15:0] audio_data_1;
