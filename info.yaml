@@ -17,40 +17,46 @@ project:
   # Source files must be in ./src and you must list each source file separately, one per line.
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
+    - "adat8enc.sv"
+    - "dsp.sv"
+    - "i2s_decoder.sv"
+    - "lyra_topl.sv"
     - "project.v"
+    - "spi_regfile.sv"
+    - "vu.sv"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
 pinout:
   # Inputs
-  ui[0]: ""
-  ui[1]: ""
-  ui[2]: ""
-  ui[3]: ""
-  ui[4]: ""
-  ui[5]: ""
-  ui[6]: ""
-  ui[7]: ""
+  ui[0]: "i2s0_ck"
+  ui[1]: "i2s0_ad"
+  ui[2]: "i2s0_ws"
+  ui[3]: "i2s1_ck"
+  ui[4]: "i2s1_ad"
+  ui[5]: "i2s1_ws"
+  ui[6]: "mute_01"
+  ui[7]: "mute_23"
 
   # Outputs
-  uo[0]: ""
-  uo[1]: ""
-  uo[2]: ""
-  uo[3]: ""
-  uo[4]: ""
-  uo[5]: ""
-  uo[6]: ""
+  uo[0]: "opt_drive"
+  uo[1]: "opt_drive"
+  uo[2]: "vu_meter_0"
+  uo[3]: "vu_meter_1"
+  uo[4]: "vu_meter_2"
+  uo[5]: "vu_meter_3"
+  uo[6]: "vu_meter_clip"
   uo[7]: ""
 
   # Bidirectional pins
-  uio[0]: ""
-  uio[1]: ""
-  uio[2]: ""
-  uio[3]: ""
-  uio[4]: ""
-  uio[5]: ""
-  uio[6]: ""
-  uio[7]: ""
+  uio[0]: "spi_sck"
+  uio[1]: "spi_mosi"
+  uio[2]: "spi_cs"
+  uio[3]: "spi_miso"
+  uio[4]: "i2so_ck"
+  uio[5]: "i2so_ad"
+  uio[6]: "i2so_ws"
+  uio[7]: "vu_meter_mon"
 
 # Do not change!
 yaml_version: 6
