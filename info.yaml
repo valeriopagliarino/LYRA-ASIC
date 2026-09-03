@@ -20,6 +20,7 @@ project:
     - "adat8enc.sv"
     - "dsp.sv"
     - "i2s_decoder.sv"
+    - "i2s_encoder.sv"
     - "lyra_topl.sv"
     - "project.v"
     - "spi_regfile.sv"
