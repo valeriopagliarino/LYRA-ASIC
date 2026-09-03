@@ -21,8 +21,8 @@
 | **Process Node** | SkyWater 130nm (SKY130) |
 | **System Clock** | 11.2896 MHz |
 | **Audio Format** | 16-bit @ 44.1 kHz |
-| **Inputs** | 4× Stereo I2S |
-| **Outputs** | 2× Stereo I2S + 1× Optical ADAT (4 Ch) |
+| **Inputs** | 2× Stereo I2S |
+| **Outputs** | 1× Stereo I2S + 1× Optical ADAT (8 Channels, 4 used) |
 | **Target Flow** | OpenLane / Caravel |
 
 ## Project Structure
