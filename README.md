@@ -1,14 +1,60 @@
-![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
+# LYRA — Quad/Dual-Channel Audio DSP & ADAT Optical Interface ASIC
 
-# Tiny Tapeout Verilog Project Template
+![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+![PDK](https://img.shields.io/badge/PDK-SkyWater_130nm-green.svg)
 
-- [Read the documentation for project](docs/info.md)
+**LYRA** is an open-source audio processing ASIC designed for the **SkyWater 130nm (SKY130)** PDK. It integrates a dual-channel audio DSP, embedded programmable logic, multi-channel I2S audio interfaces, and a 4-channel optical ADAT encoder.
 
-## What is Tiny Tapeout?
+## Key Features
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
+* **Silicon PDK:** SkyWater 130nm (SKY130)
+* **DSP Engine:** 2-channel core for real-time audio filtering and processing
+* **Programmable Logic:** On-chip configurable logic block for custom routing and hardware acceleration
+* **Audio Inputs:** 4× Stereo I2S inputs (8 total channels, 16/24-bit @ 44.1/48 kHz)
+* **Audio Outputs:** 2× Stereo I2S outputs (local monitoring) + 1× 4-channel optical ADAT output (TOSLINK)
+* **System Clock:** 11.2896 MHz (256 × 44.1 kHz) single clock domain
 
-To learn more and get started, visit https://tinytapeout.com.
+## Specifications
+
+| Parameter | Specification |
+| :--- | :--- |
+| **Process Node** | SkyWater 130nm (SKY130) |
+| **System Clock** | 11.2896 MHz |
+| **Audio Format** | 16-bit / 24-bit @ 44.1 kHz / 48 kHz |
+| **Inputs** | 4× Stereo I2S |
+| **Outputs** | 2× Stereo I2S + 1× Optical ADAT (4 Ch) |
+| **Target Flow** | OpenLane / Caravel |
+
+## Project Structure
+
+* `rtl/` — SystemVerilog source files (I2S, DSP, logic array, ADAT encoder, top wrapper)
+* `tb/` — Testbenches and simulation files
+* `openlane/` — Synthesis, placement, and routing configurations
+* `docs/` — Architecture specs and timing documentation
+
+## Quickstart
+
+### Simulation
+
+Run testbenches using Icarus Verilog or Verilator:
+
+```bash
+cd tb
+make run_all
+```
+
+### ASIC Flow
+
+Harden the top module using OpenLane:
+
+```bash
+make harden MODULE=lyra_top
+```
+
+## License
+
+Copyright (c) 2026 Valerio Pagliarino.  
+Licensed under the **Apache License, Version 2.0**.
 
 ## Set up your Verilog project
 
