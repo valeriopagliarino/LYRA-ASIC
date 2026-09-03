@@ -146,6 +146,9 @@ module tt_um_lyra (
   assign uio_oe[2]  = 1'b0;   // spi_cs is input
 
   // Inout pins as outputs
+  assign uio_out[0] = 1'b0;
+  assign uio_out[1] = 1'b0;
+  assign uio_out[2] = 1'b0;
   assign uio_out[3] = spi_miso;
   assign uio_out[4] = i2so_ck;
   assign uio_out[5] = i2so_ad;
