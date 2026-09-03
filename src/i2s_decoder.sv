@@ -25,6 +25,7 @@
 module i2s_decoder (
     input  logic        clk,        // System clock (11.2896 MHz)
     input  logic        rst_n,      // Asynchronous reset, active low
+    input  logic        mute,       // When high, the output data is forced to zero (muted)
     
     // I2S Interface (Input)
     input  logic        i2s_bclk,   // Bit Clock
@@ -99,11 +100,19 @@ module i2s_decoder (
                         if (bit_cnt == 5'd15) begin
                             if (current_ch == 1'b0) begin
                                 // Left channel completed
-                                left_data  <= {shift_reg[14:0], sdata_sync[2]};
+                                if (mute) begin
+                                    left_data  <= 16'd0;
+                                end else begin
+                                    left_data  <= {shift_reg[14:0], sdata_sync[2]};
+                                end
                                 left_ready <= 1'b1;
                             end else begin
                                 // Right channel completed
-                                right_data <= {shift_reg[14:0], sdata_sync[2]};
+                                if (mute) begin
+                                    right_data <= 16'd0;
+                                end else begin
+                                    right_data <= {shift_reg[14:0], sdata_sync[2]};
+                                end
                                 // Assert valid only if we correctly received a Left-Right packet
                                 if (left_ready) begin
                                     valid      <= 1'b1;

@@ -132,6 +132,7 @@ module lyra_topl  (
     i2s_decoder i2s_decoder_inst0 (
         .clk(clk),
         .rst_n(rst_n),
+        .mute(mute_01),
         .i2s_bclk(i2s0_ck),
         .i2s_ws(i2s0_ws),
         .i2s_sdata(i2s0_ad),
@@ -143,6 +144,7 @@ module lyra_topl  (
     i2s_decoder i2s_decoder_inst1 (
         .clk(clk),
         .rst_n(rst_n),
+        .mute(mute_23),
         .i2s_bclk(i2s1_ck),
         .i2s_ws(i2s1_ws),
         .i2s_sdata(i2s1_ad),
@@ -308,10 +310,10 @@ module lyra_topl  (
                 audio_data_out_valid_1 = audio_data_valid_1;
             end
             2'b11: begin
-                audio_data_out_0 = audio_data_0;
-                audio_data_out_1 = audio_data_1;
-                audio_data_out_valid_0 = audio_data_valid_0;
-                audio_data_out_valid_1 = audio_data_valid_1;
+                audio_data_out_0 = audio_data_adat0 + audio_data_adat2;
+                audio_data_out_1 = audio_data_adat1 + audio_data_adat3;
+                audio_data_out_valid_0 = audio_data_adat0_valid & audio_data_adat2_valid;
+                audio_data_out_valid_1 = audio_data_adat1_valid & audio_data_adat3_valid;
             end
             default: begin
                 audio_data_out_0 = audio_data_adat0;
