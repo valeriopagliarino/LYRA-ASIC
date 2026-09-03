@@ -165,7 +165,8 @@ module lyra_topl  (
         .i2s_sdata(i2so_ad),
         .left_data(audio_data_out_0),
         .right_data(audio_data_out_1),
-        .valid(audio_data_out_valid_0 & audio_data_out_valid_1)
+        .left_valid(audio_data_out_valid_0),
+        .right_valid(audio_data_out_valid_1)
     );
 
     ///////////////////////////////////////////////////////
