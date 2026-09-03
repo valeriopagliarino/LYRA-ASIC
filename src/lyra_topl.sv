@@ -241,7 +241,7 @@ module lyra_topl  (
         .exciter_freq(exciter_freq0),  
         .exciter_drive(exciter_drive0), 
         .comp_bypass_b(comp_bypass0_b),   
-        .exciter_bypass_b(exciter_bypass0_b),
+        .exciter_bypass_b(exciter_bypass0_b)
     );
 
     dsp dsp_inst1 (
@@ -257,7 +257,7 @@ module lyra_topl  (
         .exciter_freq(exciter_freq1),  
         .exciter_drive(exciter_drive1), 
         .comp_bypass_b(comp_bypass1_b),   
-        .exciter_bypass_b(exciter_bypass1_b),
+        .exciter_bypass_b(exciter_bypass1_b)
     );
 
 
