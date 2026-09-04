@@ -176,7 +176,7 @@ module lyra_topl  (
     //// ADAT Encoder Instance
     ///////////////////////////////////////////////////////
 
-    adat_encoder_4ch adat_encoder_inst (
+    adat_encoder_6ch adat_encoder_inst (
         .clk_bit(clk),
         .rst_n(rst_n),
         .ch0_data(audio_data_adat0),
@@ -187,6 +187,10 @@ module lyra_topl  (
         .ch2_valid(audio_data_adat2_valid),
         .ch3_data(audio_data_adat3),
         .ch3_valid(audio_data_adat3_valid),
+        .ch4_data(audio_data_0),
+        .ch4_valid(audio_data_valid_0),
+        .ch5_data(audio_data_1),
+        .ch5_valid(audio_data_valid_1),
         .adat_out(opt_drive)
     );
 
@@ -195,10 +199,9 @@ module lyra_topl  (
     ///////////////////////////////////////////////////////
 
     // Configuration registers for routing and processing
-    logic [31:0] config_reg;
+    logic [15:0] config_reg;
 
     logic [1:0] route_output;
-    logic       route_duplicate_01;
 
     logic [2:0]  comp_thresh0;  
     logic [1:0]  comp_speed0;    
@@ -217,21 +220,13 @@ module lyra_topl  (
     logic        exciter_bypass1_b;
 
     assign route_output = config_reg[1:0];
-    assign route_duplicate_01 = config_reg[2];
-    assign comp_thresh0 = config_reg[5:3];
-    assign comp_speed0 = config_reg[7:6];
-    assign comp_ratio0 = config_reg[9:8];
-    assign exciter_freq0 = config_reg[11:10];
-    assign exciter_drive0 = config_reg[14:12];
+    assign comp_thresh0 = config_reg[4:2];
+    assign comp_speed0 = config_reg[6:5];
+    assign comp_ratio0 = config_reg[8:7];
+    assign exciter_freq0 = config_reg[10:9];
+    assign exciter_drive0 = config_reg[13:11];
     assign comp_bypass0_b = config_reg[15];
-    assign exciter_bypass0_b = config_reg[16];
-    assign comp_thresh1 = config_reg[19:17];
-    assign comp_speed1 = config_reg[21:20];
-    assign comp_ratio1 = config_reg[23:22];
-    assign exciter_freq1 = config_reg[25:24];
-    assign exciter_drive1 = config_reg[28:26];
-    assign comp_bypass1_b = config_reg[29];
-    assign exciter_bypass1_b = config_reg[30];
+    assign exciter_bypass0_b = config_reg[15];
 
     spi_regfile spi_regfile_inst (
         .clk(clk),
@@ -250,10 +245,17 @@ module lyra_topl  (
     dsp dsp_inst0 (
         .clk(clk),
         .rst_n(rst_n),
-        .audio_data_in(audio_data_0),
-        .audio_data_valid_in(audio_data_valid_0),
-        .audio_data_out(audio_data_adat0),
-        .audio_data_valid_out(audio_data_adat0_valid),
+
+        .ch0_data_in(audio_data_0),
+        .ch0_valid_in(audio_data_valid_0),
+        .ch1_data_in(audio_data_1),
+        .ch1_valid_in(audio_data_valid_1),
+
+        .ch0_data_out(audio_data_adat0),
+        .ch0_valid_out(audio_data_adat0_valid),
+        .ch1_data_out(audio_data_adat1),
+        .ch1_valid_out(audio_data_adat1_valid),
+        
         .comp_thresh(comp_thresh0),   
         .comp_speed(comp_speed0),    
         .comp_ratio(comp_ratio0),    
@@ -263,31 +265,14 @@ module lyra_topl  (
         .exciter_bypass_b(exciter_bypass0_b)
     );
 
-    dsp dsp_inst1 (
-        .clk(clk),
-        .rst_n(rst_n),
-        .audio_data_in(audio_data_1),
-        .audio_data_valid_in(audio_data_valid_1),
-        .audio_data_out(audio_data_adat1),
-        .audio_data_valid_out(audio_data_adat1_valid),
-        .comp_thresh(comp_thresh1),   
-        .comp_speed(comp_speed1),    
-        .comp_ratio(comp_ratio1),    
-        .exciter_freq(exciter_freq1),  
-        .exciter_drive(exciter_drive1), 
-        .comp_bypass_b(comp_bypass1_b),   
-        .exciter_bypass_b(exciter_bypass1_b)
-    );
-
-
     ///////////////////////////////////////////////////////
     //// Audio Routing Matrix
     ///////////////////////////////////////////////////////
 
-    assign audio_data_adat2 = route_duplicate_01 ? audio_data_0 : audio_data_2;
-    assign audio_data_adat3 = route_duplicate_01 ? audio_data_1 : audio_data_3;
-    assign audio_data_adat2_valid = route_duplicate_01 ? audio_data_valid_0 : audio_data_valid_2;
-    assign audio_data_adat3_valid = route_duplicate_01 ? audio_data_valid_1 : audio_data_valid_3;
+    assign audio_data_adat2 = audio_data_2;
+    assign audio_data_adat3 = audio_data_3;
+    assign audio_data_adat2_valid = audio_data_valid_2;
+    assign audio_data_adat3_valid = audio_data_valid_3;
 
     always_comb begin
         case (route_output)

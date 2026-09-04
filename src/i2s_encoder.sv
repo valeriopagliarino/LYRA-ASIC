@@ -6,7 +6,7 @@
  *  Module      : i2s_encoder
  *  Author      : Valerio Pagliarino
  *  Created     : 2026
- *  Revision    : 1.1
+ *  Revision    : 1.2
  *  License     : Apache-2.0 (SPDX-License-Identifier: Apache-2.0)
  *
  *  Copyright (c) 2026 Valerio Pagliarino. All rights reserved.
@@ -21,6 +21,7 @@
  *    Ver   Date        Author           Description
  *    1.0   2026-09-03  V. Pagliarino    Initial release
  *    1.1   2026-09-03  V. Pagliarino    Added dual valid ports and TX snapshot buffer
+ *    1.2   2026-09-03  V. Pagliarino    Fixed bit_idx vector width and subtraction operand
  *******************************************************************************/
 
 `timescale 1ns / 1ps
@@ -53,9 +54,11 @@ module i2s_encoder (
     // 256 clock cycles @ 11.2896 MHz = 1 I2S frame @ 44.1 kHz
     logic [7:0] cnt;
 
-    // Bit index mapping for MSB-first transmission
+    // Bit index mapping for MSB-first transmission (4-bit index for 16-bit buffer)
+    // L'operazione e a 5 bit (5'd16 - cnt[6:2]); l'assegnamento a bit_idx [3:0]
+    // tronca l'MSB in modo pulito mantenendo l'indice sempre tra 0 e 15.
     logic [3:0] bit_idx;
-    assign bit_idx = 4'd16 - cnt[6:2];
+    assign bit_idx = 5'd16 - cnt[6:2];
 
     //--------------------------------------------------------------------------
     // 1. Independent Input Data Capture

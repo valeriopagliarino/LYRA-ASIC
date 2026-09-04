@@ -1,4 +1,3 @@
-
 /*******************************************************************************
  *  L Y R A   A U D I O   A D A T   I N T E R F A C E
  *******************************************************************************
@@ -13,7 +12,7 @@
  *  Copyright (c) 2026 Valerio Pagliarino. All rights reserved.
  *------------------------------------------------------------------------------
  *  DESCRIPTION:
- *    Configuration register file with SPI interface for LYRA (32 bit)
+ *    Configuration register file with SPI interface for LYRA (16 bit)
  *------------------------------------------------------------------------------
  *  REVISION HISTORY:
  *    Ver   Date        Author           Description
@@ -27,7 +26,7 @@ module spi_regfile (
     input  logic        spi_mosi,
     input  logic        spi_cs,        // Active-low Chip Select (~CS)
     output logic        spi_miso,
-    output logic [31:0] config_reg
+    output logic [15:0] config_reg
 );
 
     // MISO unused for write-only operations
@@ -55,8 +54,8 @@ module spi_regfile (
     wire cs_active  = ~cs_q[1];
 
     // --- Shift Register & Counter ---
-    logic [31:0] shift_reg;
-    logic [4:0]  bit_cnt;
+    logic [15:0] shift_reg;
+    logic [3:0]  bit_cnt;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -66,12 +65,12 @@ module spi_regfile (
         end else begin
             if (cs_active) begin
                 if (sck_rising) begin
-                    shift_reg <= {shift_reg[30:0], mosi_q[1]};
+                    shift_reg <= {shift_reg[14:0], mosi_q[1]};
                     bit_cnt   <= bit_cnt + 1'b1;
 
-                    // Update output register directly on 32nd bit arrival
-                    if (bit_cnt == 5'd31) begin
-                        config_reg <= {shift_reg[30:0], mosi_q[1]};
+                    // Update output register directly on 16th bit arrival
+                    if (bit_cnt == 4'd15) begin
+                        config_reg <= {shift_reg[14:0], mosi_q[1]};
                     end
                 end
             end else begin

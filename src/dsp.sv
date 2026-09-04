@@ -1,4 +1,3 @@
-
 /*******************************************************************************
  *  L Y R A   A U D I O   A D A T   I N T E R F A C E
  *******************************************************************************
@@ -7,189 +6,338 @@
  *  Module      : dsp
  *  Author      : Valerio Pagliarino
  *  Created     : 2026
- *  Revision    : 1.0
+ *  Revision    : 6.0 (Bug-Fixed & Hold-Optimized Architecture)
  *  License     : Apache-2.0 (SPDX-License-Identifier: Apache-2.0)
  *
- *  Copyright (c) 2026 Valerio Pagliarino. All rights reserved.
- *------------------------------------------------------------------------------
  *  DESCRIPTION:
- *    Audio area-optimized DSP for LYRA.
- *------------------------------------------------------------------------------
- *  REVISION HISTORY:
- *    Ver   Date        Author           Description
- *    1.0   2026-09-03  V. Pagliarino    Initial release
+ *    Dual-channel audio DSP with serial multiplication.
+ *    Isolated processing registers protect against input changes, while
+ *    combinational MUX delay eliminates post-CTS hold buffer insertion.
  *******************************************************************************/
 
-module dsp (
+
+module dsp #(
+    parameter int NUM_CH = 2
+) (
     input  logic        clk,
     input  logic        rst_n,
-    input  logic [15:0] audio_data_in,
-    input  logic        audio_data_valid_in,
 
-    // Programmable Control Ports (13 bits total)
-    input  logic [2:0]  comp_thresh,    // 8 Thresholds: -0.8dB to -18dB
-    input  logic [1:0]  comp_speed,     // Attack/Release timing: Fast, Med-Fast, Med-Slow, Slow
-    input  logic [1:0]  comp_ratio,     // Compression Ratio: 1.5:1, 2:1, 4:1, Inf:1 (Limiter)
-    input  logic [1:0]  exciter_freq,   // HPF Cutoff tuning: ~3kHz, ~1.5kHz, ~750Hz, ~375Hz
-    input  logic [2:0]  exciter_drive,  // 8 Harmonic blend levels: 0% to 100%
-    input  logic        comp_bypass_b,    // 1: Bypass Compressor
-    input  logic        exciter_bypass_b, // 1: Bypass Exciter
+    // Per-channel audio I/O
+    input  logic [15:0] ch0_data_in,
+    input  logic        ch0_valid_in,
+    input  logic [15:0] ch1_data_in,
+    input  logic        ch1_valid_in,
 
-    output logic [15:0] audio_data_out,
-    output logic        audio_data_valid_out
+    output logic [15:0] ch0_data_out,
+    output logic        ch0_valid_out,
+    output logic [15:0] ch1_data_out,
+    output logic        ch1_valid_out,
+
+    // Shared Control Ports
+    input  logic [2:0]  comp_thresh,
+    input  logic [1:0]  comp_speed,
+    input  logic [1:0]  comp_ratio,
+    input  logic [1:0]  exciter_freq,
+    input  logic [2:0]  exciter_drive,
+    input  logic        comp_bypass_b,
+    input  logic        exciter_bypass_b
 );
 
-    // ------------------------------------------------------------------------
-    // 1. Approximate Absolute Value (1's complement - zero adders)
-    // ------------------------------------------------------------------------
-    logic [14:0] abs_audio;
-    assign abs_audio = audio_data_in[15] ? ~audio_data_in[14:0] : audio_data_in[14:0];
+    // -------------------------------------------------------------------
+    // Port Packing
+    // -------------------------------------------------------------------
+    logic [15:0] data_in   [0:NUM_CH-1];
+    logic        valid_in  [0:NUM_CH-1];
+    logic [15:0] data_out  [0:NUM_CH-1];
+    logic        valid_out [0:NUM_CH-1];
 
-    // ------------------------------------------------------------------------
-    // 2. Programmable Compressor Envelope Detector
-    // ------------------------------------------------------------------------
-    logic [14:0] env;
-    logic signed [15:0] env_diff;
-    assign env_diff = $signed({1'b0, abs_audio}) - $signed({1'b0, env});
+    assign data_in[0]  = ch0_data_in;
+    assign data_in[1]  = ch1_data_in;
+    assign valid_in[0] = ch0_valid_in;
+    assign valid_in[1] = ch1_valid_in;
 
-    // Muxing shift amount changes attack/release speed with zero extra FFs
-    logic [3:0] env_shift;
+    assign ch0_data_out  = data_out[0];
+    assign ch1_data_out  = data_out[1];
+    assign ch0_valid_out = valid_out[0];
+    assign ch1_valid_out = valid_out[1];
+
+    // -------------------------------------------------------------------
+    // Per-Channel State Registers
+    // -------------------------------------------------------------------
+    logic [15:0] in_sample  [0:NUM_CH-1];
+    logic        pending    [0:NUM_CH-1];
+    logic [14:0] env        [0:NUM_CH-1];
+    logic signed [15:0] lpf [0:NUM_CH-1];
+    
+    logic [15:0] data_stage [0:NUM_CH-1];
+    logic        processed  [0:NUM_CH-1];
+
+    // -------------------------------------------------------------------
+    // Arbiter & Channel Muxing
+    // -------------------------------------------------------------------
+    logic sel;
+    logic any_pending;
+
     always_comb begin
-        case (comp_speed)
-            2'b00:   env_shift = 4'd4;  // Fast
-            2'b01:   env_shift = 4'd6;  // Medium-Fast
-            2'b10:   env_shift = 4'd8;  // Medium-Slow
-            default: env_shift = 4'd10; // Slow
-        endcase
-    end
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            env <= '0;
-        end else if (audio_data_valid_in) begin
-            env <= env + 15'(env_diff >>> env_shift);
+        sel         = 1'b0;
+        any_pending = 1'b0;
+        if (pending[1]) begin
+            sel         = 1'b1;
+            any_pending = 1'b1;
+        end else if (pending[0]) begin
+            sel         = 1'b0;
+            any_pending = 1'b1;
         end
     end
 
-    // ------------------------------------------------------------------------
-    // 3. 8-Level Threshold & Programmable Ratio Gain Logic
-    // ------------------------------------------------------------------------
+    // Selected Channel Wires
+    logic signed [15:0] sample_sel;
+    logic [14:0]        env_sel;
+    logic signed [15:0] lpf_sel;
+
+    assign sample_sel = $signed(in_sample[sel]);
+    assign env_sel     = env[sel];
+    assign lpf_sel     = lpf[sel];
+
+    // -------------------------------------------------------------------
+    // Combinational Envelope & Gain (Evaluated using 'sel')
+    // -------------------------------------------------------------------
+    logic [14:0] abs_audio;
+    // Corretto: negazione completa in complemento a 2 se negativo
+    logic signed [15:0] negated_sample;
+    assign negated_sample = -sample_sel;
+    assign abs_audio      = sample_sel[15] ? negated_sample[14:0] : sample_sel[14:0];
+
+    logic signed [15:0] env_diff;
+    assign env_diff = $signed({1'b0, abs_audio}) - $signed({1'b0, env_sel});
+
+    logic [3:0] env_shift;
+    always_comb begin
+        case (comp_speed)
+            2'b00:   env_shift = 4'd4;
+            2'b01:   env_shift = 4'd6;
+            2'b10:   env_shift = 4'd8;
+            default: env_shift = 4'd10;
+        endcase
+    end
+
+    logic [14:0] new_env;
+    assign new_env = env_sel + 15'(env_diff >>> env_shift);
+
     logic [14:0] thresh;
     always_comb begin
         case (comp_thresh)
-            3'b000:  thresh = 15'd30000; // -0.8 dBFS
-            3'b001:  thresh = 15'd26000; // -2.0 dBFS
-            3'b010:  thresh = 15'd20600; // -4.0 dBFS
-            3'b011:  thresh = 15'd16384; // -6.0 dBFS
-            3'b100:  thresh = 15'd11585; // -9.0 dBFS
-            3'b101:  thresh = 15'd8192;  // -12.0 dBFS
-            3'b110:  thresh = 15'd5792;  // -15.0 dBFS
-            default: thresh = 15'd4096;  // -18.0 dBFS
+            3'b000:  thresh = 15'd30000;
+            3'b001:  thresh = 15'd26000;
+            3'b010:  thresh = 15'd20600;
+            3'b011:  thresh = 15'd16384;
+            3'b100:  thresh = 15'd11585;
+            3'b101:  thresh = 15'd8192;
+            3'b110:  thresh = 15'd5792;
+            default: thresh = 15'd4096;
         endcase
     end
 
     logic [14:0] env_excess;
-    assign env_excess = (env > thresh) ? (env - thresh) : 15'd0;
+    assign env_excess = (env_sel > thresh) ? (env_sel - thresh) : 15'd0;
 
-    // Gain reduction slope controlled by ratio selection
     logic [8:0] gain_sub;
     always_comb begin
         case (comp_ratio)
-            2'b00:   gain_sub = env_excess[14:7];          // ~1.5:1 ratio (Soft)
-            2'b01:   gain_sub = env_excess[14:6];          // 2:1 ratio
-            2'b10:   gain_sub = env_excess[14:5];          // 4:1 ratio
-            default: gain_sub = {env_excess[14:5], 1'b0}; // Inf:1 Limiter (Hard)
+            2'b00:   gain_sub = env_excess[14:7];
+            2'b01:   gain_sub = env_excess[14:6];
+            2'b10:   gain_sub = env_excess[14:5];
+            default: gain_sub = {env_excess[14:5], 1'b0};
         endcase
     end
 
-    // Clamp minimum gain to 0.25 (-12dB max attenuation)
     logic [8:0] gain;
     assign gain = (gain_sub >= 9'd192) ? 9'd64 : (9'd256 - gain_sub);
 
-    // ------------------------------------------------------------------------
-    // 4. Single Multiplier Gain Application & Compressor Bypass
-    // ------------------------------------------------------------------------
-    logic signed [24:0] mult_comp;
+    // -------------------------------------------------------------------
+    // Execution Work Registers
+    // -------------------------------------------------------------------
+    typedef enum logic [1:0] {
+        ST_IDLE,
+        ST_MULT,
+        ST_FINISH
+    } state_t;
+
+    state_t state;
+
+    logic        active_ch;       
+    logic signed [15:0] proc_sample;     
+    logic [14:0]        proc_env;        
+    logic signed [15:0] proc_lpf; 
+
+    logic signed [24:0] mult_acc;
+    logic signed [24:0] mult_a;
+    logic [8:0]         mult_b;
+    logic [3:0]         mult_cnt;
+
+    // -------------------------------------------------------------------
+    // Combinational Exciter & Saturation
+    // -------------------------------------------------------------------
     logic signed [15:0] comp_audio_calc;
     logic signed [15:0] comp_audio;
 
-    assign mult_comp       = $signed(audio_data_in) * $signed({1'b0, gain});
-    assign comp_audio_calc = mult_comp[23:8];
-    assign comp_audio      = (~comp_bypass_b) ? audio_data_in : comp_audio_calc;
+    assign comp_audio_calc = mult_acc[23:8];
+    assign comp_audio      = (~comp_bypass_b) ? proc_sample : comp_audio_calc;
 
-    // ------------------------------------------------------------------------
-    // 5. Programmable Exciter Stage (HPF Tuning + Harmonics)
-    // ------------------------------------------------------------------------
-    logic signed [15:0] lpf;
     logic signed [15:0] hpf;
     logic signed [15:0] lpf_diff;
 
-    assign lpf_diff = comp_audio - lpf;
-    assign hpf      = comp_audio - lpf;
+    assign lpf_diff = comp_audio - proc_lpf;
+    assign hpf      = comp_audio - proc_lpf;
 
-    // Muxing LPF cutoff frequency controls exciter tone/color
     logic [3:0] lpf_shift;
     always_comb begin
         case (exciter_freq)
-            2'b00:   lpf_shift = 4'd2; // ~3.0 kHz HPF Cutoff (Air)
-            2'b01:   lpf_shift = 4'd3; // ~1.5 kHz HPF Cutoff (Highs)
-            2'b10:   lpf_shift = 4'd4; // ~750 Hz HPF Cutoff (Presence)
-            default: lpf_shift = 4'd5; // ~375 Hz HPF Cutoff (Warmth)
+            2'b00:   lpf_shift = 4'd2;
+            2'b01:   lpf_shift = 4'd3;
+            2'b10:   lpf_shift = 4'd4;
+            default: lpf_shift = 4'd5;
         endcase
     end
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            lpf <= '0;
-        end else if (audio_data_valid_in) begin
-            lpf <= lpf + (lpf_diff >>> lpf_shift);
-        end
-    end
+    logic signed [15:0] new_lpf;
+    assign new_lpf = proc_lpf + (lpf_diff >>> lpf_shift);
 
-    // Nonlinear harmonic generation (Asymmetric Soft Clipper)
+    // Corretto: Estrazione armonica simmetrica mantenendo la polarità di hpf
     logic signed [15:0] harmonics;
-    assign harmonics = hpf[15] ? -(hpf >>> 2) : (hpf - (hpf >>> 2));
+    assign harmonics = hpf - (hpf >>> 2);
 
-    // 8-Level Drive Control
     logic signed [15:0] exc_blend;
     always_comb begin
         if (!exciter_bypass_b) begin
             exc_blend = '0;
         end else begin
             case (exciter_drive)
-                3'b001:  exc_blend = harmonics >>> 4;                        //  6.25%
-                3'b010:  exc_blend = harmonics >>> 3;                        // 12.5%
-                3'b011:  exc_blend = (harmonics >>> 3) + (harmonics >>> 4);  // 18.75%
-                3'b100:  exc_blend = harmonics >>> 2;                        // 25.0%
-                3'b101:  exc_blend = (harmonics >>> 2) + (harmonics >>> 3);  // 37.5%
-                3'b110:  exc_blend = harmonics >>> 1;                        // 50.0%
-                3'b111:  exc_blend = harmonics;                              // 100.0%
-                default: exc_blend = '0;                                     // Off
+                3'b001:  exc_blend = harmonics >>> 4;
+                3'b010:  exc_blend = harmonics >>> 3;
+                3'b011:  exc_blend = (harmonics >>> 3) + (harmonics >>> 4);
+                3'b100:  exc_blend = harmonics >>> 2;
+                3'b101:  exc_blend = (harmonics >>> 2) + (harmonics >>> 3);
+                3'b110:  exc_blend = harmonics >>> 1;
+                3'b111:  exc_blend = harmonics;
+                default: exc_blend = '0;
             endcase
         end
     end
 
-    // ------------------------------------------------------------------------
-    // 6. Final Mix & Saturation Logic
-    // ------------------------------------------------------------------------
     logic signed [16:0] sum_out;
     assign sum_out = $signed(comp_audio) + $signed(exc_blend);
 
+    logic [15:0] new_out;
+    always_comb begin
+        if (sum_out > 17'sd32767) begin
+            new_out = 16'sh7FFF;
+        end else if (sum_out < -17'sd32768) begin
+            new_out = 16'sh8000;
+        end else begin
+            new_out = sum_out[15:0];
+        end
+    end
+
+    // Batch completion flag
+    logic batch_ready;
+    assign batch_ready = processed[~active_ch];
+
+    // -------------------------------------------------------------------
+    // Sequential State Block
+    // -------------------------------------------------------------------
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            audio_data_out       <= '0;
-            audio_data_valid_out <= 1'b0;
-        end else begin
-            audio_data_valid_out <= audio_data_valid_in;
-            if (audio_data_valid_in) begin
-                if (sum_out > 17'sd32767) begin
-                    audio_data_out <= 16'sh7FFF;
-                end else if (sum_out < -17'sd32768) begin
-                    audio_data_out <= 16'sh8000;
-                end else begin
-                    audio_data_out <= sum_out[15:0];
-                end
+            state       <= ST_IDLE;
+            active_ch   <= 1'b0;
+            proc_sample <= '0;
+            proc_env    <= '0;
+            proc_lpf    <= '0;
+            mult_acc    <= '0;
+            mult_a      <= '0;
+            mult_b      <= '0;
+            mult_cnt    <= '0;
+
+            for (int i = 0; i < NUM_CH; i++) begin
+                in_sample[i]  <= 16'h0000;
+                pending[i]    <= 1'b0;
+                processed[i]  <= 1'b0;
+                env[i]        <= '0;
+                lpf[i]        <= '0;
+                data_stage[i] <= 16'h0000;
+                data_out[i]   <= 16'h0000;
+                valid_out[i]  <= 1'b0;
             end
+        end else begin
+            valid_out[0] <= 1'b0;
+            valid_out[1] <= 1'b0;
+
+            // 1. Independent Input Capture
+            if (valid_in[0]) begin
+                in_sample[0] <= data_in[0];
+                pending[0]   <= 1'b1;
+            end
+            if (valid_in[1]) begin
+                in_sample[1] <= data_in[1];
+                pending[1]   <= 1'b1;
+            end
+
+            // 2. FSM Execution
+            case (state)
+                ST_IDLE: begin
+                    if (any_pending) begin
+                        active_ch    <= sel;
+                        pending[sel] <= 1'b0;
+
+                        proc_sample  <= sample_sel;
+                        proc_env     <= new_env;
+                        proc_lpf     <= lpf_sel;
+
+                        mult_acc     <= 25'sd0;
+                        mult_a       <= $signed({{9{sample_sel[15]}}, sample_sel});
+                        mult_b       <= gain;
+                        mult_cnt     <= 4'd0;
+
+                        state        <= ST_MULT;
+                    end
+                end
+
+                ST_MULT: begin
+                    if (mult_b[0]) begin
+                        mult_acc <= mult_acc + mult_a;
+                    end
+                    mult_a   <= mult_a << 1;
+                    mult_b   <= mult_b >> 1;
+                    mult_cnt <= mult_cnt + 1'b1;
+
+                    if (mult_cnt == 4'd8) begin
+                        state <= ST_FINISH;
+                    end
+                end
+
+                ST_FINISH: begin
+                    env[active_ch]        <= proc_env;
+                    lpf[active_ch]        <= new_lpf;
+                    data_stage[active_ch] <= new_out;
+
+                    if (batch_ready) begin
+                        data_out[active_ch]  <= new_out;
+                        data_out[~active_ch] <= data_stage[~active_ch];
+
+                        valid_out[0] <= 1'b1;
+                        valid_out[1] <= 1'b1;
+
+                        processed[0] <= 1'b0;
+                        processed[1] <= 1'b0;
+                    end else begin
+                        processed[active_ch] <= 1'b1;
+                    end
+
+                    state <= ST_IDLE;
+                end
+
+                default: state <= ST_IDLE;
+            endcase
         end
     end
 

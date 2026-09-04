@@ -1,7 +1,9 @@
-# LYRA — Quad/Dual-Channel Audio DSP & ADAT Optical Interface ASIC
+# LYRA — Quad Channel ADAT Optical Interface with Dual Channel Audio DSP ASIC
 
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 ![PDK](https://img.shields.io/badge/PDK-SkyWater_130nm-green.svg)
+
+<img src="docs/assets/logo.png" alt="LYRA Logo" width="400"/>
 
 **LYRA** is an open-source audio processing ASIC designed for the **SkyWater 130nm (SKY130)** PDK. It integrates a dual-channel audio DSP, embedded programmable logic, multi-channel I2S audio interfaces, and a 4-channel optical ADAT encoder.
 
@@ -19,11 +21,12 @@
 | Parameter | Specification |
 | :--- | :--- |
 | **Process Node** | SkyWater 130nm (SKY130) |
-| **System Clock** | 11.2896 MHz |
-| **Audio Format** | 16-bit @ 44.1 kHz |
+| **System Clock** | 11.2896 MHz (base for 44.1 kHz) |
+| **Audio Format** | 16-bit @ 44.1 kHz / 48 kHz / 96 kHz |
 | **Inputs** | 2× Stereo I2S |
 | **Outputs** | 1× Stereo I2S + 1× Optical ADAT (8 Channels, 4 used) |
-| **Target Flow** | OpenLane / Caravel |
+| **Area** | 300 um x 200 um |
+| **Target Flow** | OpenLane / TinyTapeout 2x2 |
 
 ## Project Structure
 
@@ -40,7 +43,7 @@ Run testbenches using Icarus Verilog or Verilator:
 
 ```bash
 cd tb
-make run_all
+make
 ```
 
 ### ASIC Flow
