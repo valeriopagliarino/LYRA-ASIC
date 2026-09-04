@@ -38,6 +38,7 @@ silence (zero-padding to complete a standard ADAT8 frame). If your
 encoder differs (different sync length, bit order, or padding
 position), adjust the constants below accordingly.
 """
+
 """
 Standard ADAT (Alesis Digital Audio Tape) optical "Lightpipe" 8-channel
 decoder, implemented as a passive cocotb bus functional model.
@@ -69,8 +70,10 @@ FRAME_SYNC_BITS = [0, 0, 0, 0, 0, 1]
 
 def bits_to_uint(bits):
     value = 0
+
     for bit in bits:
         value = (value << 1) | (int(bit) & 1)
+
     return value
 
 
@@ -85,6 +88,7 @@ def uint_to_signed(value, width):
 
 def pcm24_leftjustified_to_pcm16(payload24):
     pcm16_unsigned = (payload24 >> 8) & 0xFFFF
+
     return uint_to_signed(pcm16_unsigned, 16)
 
 
@@ -113,7 +117,10 @@ class AdatDecoder:
 
         await RisingEdge(self.clk)
 
-        level = int(self.adat_signal.value) & 1
+        # adat_signal is the complete packed uo_out bus.
+        # opt_drive is uo_out[0].
+        value = int(self.adat_signal.value)
+        level = value & 1
 
         if self.previous_nrzi is None:
             self.previous_nrzi = level

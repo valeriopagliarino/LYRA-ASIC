@@ -143,7 +143,7 @@ async def test_lyra_audio_path(dut):
         monitor_i2s_bus(dut.clk, dut.uio_out, on_i2s_word)
     )
 
-    adat = AdatDecoder(dut.clk, dut.uo_out[0], max_sync_cycles=2000)
+    adat = AdatDecoder(dut.clk, dut.uo_out, max_sync_cycles=2000)
 
     async def adat_task():
         first = True
