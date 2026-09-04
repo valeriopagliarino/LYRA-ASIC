@@ -111,7 +111,7 @@ async def monitor_i2s_bus(clk, uio_out, callback):
                         if shift_reg < 0x8000
                         else shift_reg - 0x10000
                     )
-
+ 
                     ch_label = "L" if ws_latched == 0 else "R"
                     callback(ch_label, signed_val)
 
