@@ -33,6 +33,9 @@ from adat_bfm import AdatDecoder
 from spi_bfm import spi_write16
 from wav_io import read_wav_stereo16, WavStereoWriter
 
+# Simulation length limit (in samples) for the input wav file. Set to None to stream the entire file.
+limit = 1000  
+
 # LYRA system clock: 256 * 44100 Hz = 11.2896 MHz.
 SYS_CLK_HZ = 11_289_600
 
@@ -104,7 +107,7 @@ async def test_lyra_audio_path(dut):
     )
     left_full, right_full = read_wav_stereo16(in_wav)
     
-    n_samples = min(500, len(left_full))
+    n_samples = min(limit, len(left_full))
     left = left_full[:n_samples]
     right = right_full[:n_samples]
 
