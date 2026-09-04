@@ -5,7 +5,7 @@ project:
   discord:      ""                    # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description:  "LYRA is a I2S / optical ADAT audio converter and DSP"    
   language:     "SystemVerilog" 
-  clock_hz:     12000000       
+  clock_hz:     12288       
 
   # How many tiles your design occupies? A single tile is about 167x108 uM.
   tiles: "2x2"          # Valid values: 1x1, 1x2, 2x2, 3x2, 4x2, 6x2 or 8x2
