@@ -6,7 +6,7 @@
  *  Module      : dsp
  *  Author      : Valerio Pagliarino
  *  Created     : 2026
- *  Revision    : 6.1 (Bug-Fixed & Hold-Optimized Architecture)
+ *  Revision    : 6.2 (Bug-Fixed & Hold-Optimized Architecture)
  *  License     : Apache-2.0 (SPDX-License-Identifier: Apache-2.0)
  *
  *  DESCRIPTION:
@@ -14,11 +14,17 @@
  *    Isolated processing registers protect against input changes, while
  *    combinational MUX delay eliminates post-CTS hold buffer insertion.
  *
- *  CHANGELOG (6.1):
- *    - Fixed abs() overflow for sample == -32768 (was aliasing to 0,
- *      now saturates to +32767).
- *    - Fixed bit truncation/width mismatch in gain_sub for all comp_ratio
- *      cases (was silently wrapping on strong signals, now saturates).
+ *  CHANGELOG:
+ *    6.1 - Fixed abs() overflow for sample == -32768 (was aliasing to 0,
+ *          now saturates to +32767).
+ *        - Fixed bit truncation/width mismatch in gain_sub for all
+ *          comp_ratio cases (was silently wrapping on strong signals,
+ *          now saturates).
+ *    6.2 - Replaced linear harmonic extraction (hpf * 0.75) with full-wave
+ *          rectification of the highpassed signal (|hpf|), which produces
+ *          genuine even-order harmonic content instead of a scaled linear
+ *          shelf boost. Note: rectification introduces a small DC bias
+ *          into the exciter path; acceptable given area constraints.
  *******************************************************************************/
 
 
@@ -214,8 +220,16 @@ module dsp #(
     logic signed [15:0] new_lpf;
     assign new_lpf = proc_lpf + (lpf_diff >>> lpf_shift);
 
+    logic signed [15:0] hpf_negated;
+    logic [15:0]        hpf_rect;
+
+    assign hpf_negated = -hpf;
+    assign hpf_rect    = hpf[15]
+                          ? ((hpf == 16'sh8000) ? 16'h7FFF : hpf_negated)
+                          : hpf;
+
     logic signed [15:0] harmonics;
-    assign harmonics = hpf - (hpf >>> 2);
+    assign harmonics = $signed(hpf_rect);
 
     logic signed [15:0] exc_blend;
     always_comb begin
