@@ -32,21 +32,21 @@
 
 The ASIC is equipped with a 4-channel I2S decoder that converts incoming I2S audio streams into parallel data for processing by the DSP engine. The decoder supports standard I2S formats and can handle multiple sample rates.
 
-<img src="assets/i2s.png" alt="I2S Decoder Block Diagram" width="600"/>
+<img src="assets/i2s.png" alt="I2S Decoder Block Diagram" width="950"/>
 
 ## ADAT 8 Channels Encoder
 
 Output data are sent to a 8-channel ADAT encoder that converts the processed audio data into a TOSLINK-compatible optical signal. The encoder supports 8 channels of audio, with 6 channels used in this design.
 Channels 5 and 6 are used to send the unprocessed audio data from channels 1 and 2, while channels 1-2 carry the processed audio data from the DSP engine. Channels 3-4 are not processed by the DSP.
 
-<img src="assets/adat8.png" alt="I2S Decoder Block Diagram" width="600"/>
+<img src="assets/adat8.png" alt="I2S Decoder Block Diagram" width="950"/>
 
 
 ## Vu Meter
 
 The design provides 4 VU Meters with pulse-density encoded outputs that can be connected to a simple leaky-integrating external opamp with gain and then connected to an analog vu meter instrument.
 
-<img src="assets/vu.png" alt="I2S Decoder Block Diagram" width="600"/>
+<img src="assets/vu.png" alt="I2S Decoder Block Diagram" width="950"/>
 
 
 ## Digital Signal Processor and its configuration
