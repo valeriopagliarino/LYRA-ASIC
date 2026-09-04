@@ -22,7 +22,7 @@
 
 | Parameter | Specification |
 | :--- | :--- |
-| **Process Node** | SkyWater 130nm (SKY130) |
+| **Process Node** | SkyWater 130nm (SKY130) / IHP130 |
 | **System Clock** | 11.2896 MHz (base for 44.1 kHz) |
 | **Audio Format** | 16-bit @ 44.1 kHz / 48 kHz / 96 kHz |
 | **Inputs** | 2× Stereo I2S |
