@@ -28,6 +28,8 @@
 | **Area** | 300 um x 200 um |
 | **Target Flow** | OpenLane / TinyTapeout 2x2 |
 
+<img src="assets/lyra.png" alt="Block Diagram" width="950"/>
+
 ## I2S Decoder
 
 The ASIC is equipped with a 4-channel I2S decoder that converts incoming I2S audio streams into parallel data for processing by the DSP engine. The decoder supports standard I2S formats and can handle multiple sample rates.

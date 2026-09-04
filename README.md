@@ -30,6 +30,8 @@
 | **Area** | 300 um x 200 um |
 | **Target Flow** | OpenLane / TinyTapeout 2x2 |
 
+<img src="./docs/assets/lyra.png" alt="Block Diagram" width="950"/>
+
 ## Project Structure
 
 * `rtl/` — SystemVerilog source files (I2S, DSP, logic array, ADAT encoder, top wrapper)
