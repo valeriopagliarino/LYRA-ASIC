@@ -6,13 +6,19 @@
  *  Module      : dsp
  *  Author      : Valerio Pagliarino
  *  Created     : 2026
- *  Revision    : 6.0 (Bug-Fixed & Hold-Optimized Architecture)
+ *  Revision    : 6.1 (Bug-Fixed & Hold-Optimized Architecture)
  *  License     : Apache-2.0 (SPDX-License-Identifier: Apache-2.0)
  *
  *  DESCRIPTION:
  *    Dual-channel audio DSP with serial multiplication.
  *    Isolated processing registers protect against input changes, while
  *    combinational MUX delay eliminates post-CTS hold buffer insertion.
+ *
+ *  CHANGELOG (6.1):
+ *    - Fixed abs() overflow for sample == -32768 (was aliasing to 0,
+ *      now saturates to +32767).
+ *    - Fixed bit truncation/width mismatch in gain_sub for all comp_ratio
+ *      cases (was silently wrapping on strong signals, now saturates).
  *******************************************************************************/
 
 
@@ -103,10 +109,11 @@ module dsp #(
     // Combinational Envelope & Gain (Evaluated using 'sel')
     // -------------------------------------------------------------------
     logic [14:0] abs_audio;
-    // Corretto: negazione completa in complemento a 2 se negativo
     logic signed [15:0] negated_sample;
     assign negated_sample = -sample_sel;
-    assign abs_audio      = sample_sel[15] ? negated_sample[14:0] : sample_sel[14:0];
+    assign abs_audio      = sample_sel[15]
+                             ? ((sample_sel == 16'sh8000) ? 15'h7FFF : negated_sample[14:0])
+                             : sample_sel[14:0];
 
     logic signed [15:0] env_diff;
     assign env_diff = $signed({1'b0, abs_audio}) - $signed({1'b0, env_sel});
@@ -141,15 +148,19 @@ module dsp #(
     logic [14:0] env_excess;
     assign env_excess = (env_sel > thresh) ? (env_sel - thresh) : 15'd0;
 
-    logic [8:0] gain_sub;
+    logic [10:0] gain_sub_full;
+    logic [8:0]  gain_sub;
+
     always_comb begin
         case (comp_ratio)
-            2'b00:   gain_sub = env_excess[14:7];
-            2'b01:   gain_sub = env_excess[14:6];
-            2'b10:   gain_sub = env_excess[14:5];
-            default: gain_sub = {env_excess[14:5], 1'b0};
+            2'b00:   gain_sub_full = {3'b000, env_excess[14:7]};
+            2'b01:   gain_sub_full = {2'b00,  env_excess[14:6]};
+            2'b10:   gain_sub_full = {1'b0,   env_excess[14:5]};
+            default: gain_sub_full = {env_excess[14:5], 1'b0};
         endcase
     end
+
+    assign gain_sub = (gain_sub_full > 11'd511) ? 9'd511 : gain_sub_full[8:0];
 
     logic [8:0] gain;
     assign gain = (gain_sub >= 9'd192) ? 9'd64 : (9'd256 - gain_sub);
@@ -203,7 +214,6 @@ module dsp #(
     logic signed [15:0] new_lpf;
     assign new_lpf = proc_lpf + (lpf_diff >>> lpf_shift);
 
-    // Corretto: Estrazione armonica simmetrica mantenendo la polarità di hpf
     logic signed [15:0] harmonics;
     assign harmonics = hpf - (hpf >>> 2);
 
