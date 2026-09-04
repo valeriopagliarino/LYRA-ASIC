@@ -140,7 +140,7 @@ async def test_lyra_audio_path(dut):
             _i2s_pending["R"] = None
 
     cocotb.start_soon(
-        monitor_i2s_bus(dut.clk, dut.uio_out[4], dut.uio_out[6], dut.uio_out[5], on_i2s_word)
+        monitor_i2s_bus(dut.clk, dut.uio_out, on_i2s_word)
     )
 
     adat = AdatDecoder(dut.clk, dut.uo_out[0], max_sync_cycles=2000)
