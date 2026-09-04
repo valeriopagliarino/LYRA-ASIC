@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 ![PDK](https://img.shields.io/badge/PDK-SkyWater_130nm-green.svg)
 
-<img src="assets /logo.png" alt="LYRA Logo" width="400"/>
+<img src="assets/logo.png" alt="LYRA Logo" width="400"/>
 
 **LYRA** is an open-source audio processing ASIC designed for the **SkyWater 130nm (SKY130)** PDK. It integrates a dual-channel audio DSP, embedded programmable logic, multi-channel I2S audio interfaces, and a 4-channel optical ADAT encoder.
 
