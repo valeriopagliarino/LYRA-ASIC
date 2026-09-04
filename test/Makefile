@@ -16,6 +16,7 @@ VERILOG_SOURCES += ../src/i2s_encoder.sv
 VERILOG_SOURCES += ../src/adat8enc.sv
 VERILOG_SOURCES += ../src/dsp.sv
 VERILOG_SOURCES += ../src/vu.sv
+VERILOG_SOURCES += ../src/clock_div.sv
 
 TOPLEVEL = tt_um_lyra
 MODULE   = test_lyra

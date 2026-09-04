@@ -52,7 +52,9 @@ module lyra_topl  (
         output logic vu_meter_2,
         output logic vu_meter_3,
         output logic vu_meter_mon,
-        output logic vu_meter_clip
+        output logic vu_meter_clip,
+
+        output logic sampling_clock
     );
 
     ///////////////////////////////////////////////////////
@@ -308,6 +310,16 @@ module lyra_topl  (
             end
         endcase
     end
+
+    ///////////////////////////////////////////////////////
+    //// Clock Divider
+    ///////////////////////////////////////////////////////
+
+    clock_divider_256 clock_divider_256_inst (
+        .clk_in(clk),
+        .rst_n(rst_n),
+        .clk_out(sampling_clock)
+    );
 
 
 

@@ -25,6 +25,7 @@ project:
     - "project.v"
     - "spi_regfile.sv"
     - "vu.sv"
+    - "clock_div.sv"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
@@ -47,7 +48,7 @@ pinout:
   uo[4]: "vu_meter_2"
   uo[5]: "vu_meter_3"
   uo[6]: "vu_meter_clip"
-  uo[7]: ""
+  uo[7]: "sampling_clock"
 
   # Bidirectional pins
   uio[0]: "spi_sck"

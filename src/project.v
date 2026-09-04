@@ -73,6 +73,9 @@ module tt_um_lyra (
   wire vu_meter_mon;
   wire vu_meter_clip;
 
+  //Clock outputs
+  wire sampling_clock;
+
   //////////////////////////////////////////////////////////////////////
   //// TOP LEVEL INSTANTIATION
   //////////////////////////////////////////////////////////////////////
@@ -108,7 +111,8 @@ module tt_um_lyra (
     .vu_meter_2(vu_meter_2),
     .vu_meter_3(vu_meter_3),
     .vu_meter_mon(vu_meter_mon),
-    .vu_meter_clip(vu_meter_clip)
+    .vu_meter_clip(vu_meter_clip),
+    .sampling_clock(sampling_clock)
   );
 
 
@@ -124,7 +128,7 @@ module tt_um_lyra (
   assign uo_out[4] = vu_meter_2;
   assign uo_out[5] = vu_meter_3;
   assign uo_out[6] = vu_meter_clip;
-  assign uo_out[7] = 1'b0;
+  assign uo_out[7] = sampling_clock;
 
   // Input pins
   assign i2s0_ck = ui_in[0];
